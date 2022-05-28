@@ -1,7 +1,8 @@
 {
+  "type": "module",
   "name": "task-manager",
   "version": "1.0.0",
-  "private": true,
+  "private": false,
   "scripts": {
     "dev": "nuxt",
     "build": "nuxt build",

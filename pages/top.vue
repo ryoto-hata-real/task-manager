@@ -30,7 +30,6 @@ export default {
   layout: "default",
   name: "index",
   middleware: "auth",
-  components: true,
   data() {
     return {
       user: null

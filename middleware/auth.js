@@ -8,10 +8,7 @@ export default function ({store, route, redirect}) {
     }
 
   // ログインページの場合
-  } else if (route.path === '/auth/signin') {
-    console.log(store.state.user)
-    console.log(store.state)
-    
+  } else if (route.path === '/auth/signin') {    
 
     if(store.state.user) {
       return redirect('/top')

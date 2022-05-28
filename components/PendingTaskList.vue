@@ -195,7 +195,7 @@
                     </v-card>
                   </v-col>
                 </draggable>
-                <v-form sm="6" md="4" class="ma-3" @submit.prevent>
+                <v-form sm="6" md="4" class="ma-4" @submit.prevent>
                     <v-row>
                       <v-text-field
                         v-model="item.detailPool"
@@ -310,7 +310,6 @@ export default {
             String(this.mainTask.timeLimit.minute),
         })
         .then((response) => {
-          console.log(response.id);
           this.mainItems.push({
             documentId: response.id,
             show: false,
@@ -341,13 +340,14 @@ export default {
       this.mainItems[event.newIndex].id = event.oldIndex
     },
     async postSubData(title, item) {
-      const snapshot = await this.db.where('title', '==', title).get()
-      if (snapshot.empty) {
-        console.log('No matching documents.');
-        return;
-      }
-      snapshot.forEach(async doc => {
-        await this.db.doc(doc.id).collection('detailTasks').add({
+      const snapshot = await this.db.doc(item.documentId)
+      if (item.detailPool != '') {
+        if (snapshot.empty) {
+          console.log('No matching documents.');
+          return;
+        }
+
+        await snapshot.collection('detailTasks').add({
           id: 0,
           type: 'pending',
           detail: item.detailPool,
@@ -369,7 +369,7 @@ export default {
         .catch((error) => {
           console.log(error);
         });
-      });
+      }
     },
     deleteDetailData(item, deletedItem, j) {
       if (item['detailTasks'].length == 1) {
