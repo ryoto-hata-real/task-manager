@@ -60,7 +60,7 @@
               ></v-select>
             </v-col>
           </v-row>
-          <v-btn tile color="success" @click="postData">
+          <v-btn tile color="success" @click="addTask">
             <v-icon left> mdi-pencil </v-icon>
             タスク作成
           </v-btn>
@@ -248,44 +248,34 @@ export default {
     options: {
       animation: 300,
     },
-    mainItems: [],
   }),
-  async mounted() {
-
-    try {
-      const snapshot = await this.db.where('type', '==', 'doing').get();
-      snapshot.forEach(async (doc) => {
-      const hasDetailTasks = await doc.ref.collection('detailTasks').get()
-      let mainItem = {}
-      mainItem = doc.data()
-      mainItem["detailTasks"] = []
-      if (hasDetailTasks){
-        const subCollection = await doc.ref.collection('detailTasks').where('type', '==', 'doing').get();
-        subCollection.forEach(doc => {
-          const detailItem = doc.data()
-          detailItem["documentId"] = doc.id
-          mainItem["detailTasks"].push(detailItem)
-        });
-      }
-      mainItem["documentId"] = doc.id
-      this.mainItems.push(mainItem)
-    });
-    }catch(e){
-      return;
-    }
-    
+  mounted() {
+    this.$store.dispatch("tasks/getTasks");
   },
   computed: {
     db() {
       return this.$fire.firestore.collection(this.$store.state.user.uid)
     },
     sortedItemsById() {
-      return this.mainItems.sort((a, b) => {
-        return a.id - b.id;
-      });
+      return this.$store.state.tasks.mainItems
+    },
+    mainItems () {
+      return this.$store.state.tasks.mainItems
     }
   },
   methods: {
+    addTask() {
+      this.$store.dispatch('tasks/addTask', 
+        {
+          title: this.mainTask.title,
+          date: this.mainTask.timeLimit.date,
+          hour: this.mainTask.timeLimit.hour,
+          minute: this.mainTask.timeLimit.minute
+        }
+      )
+      this.mainTask.title = ''
+      this.show = false;
+    },
     changeStatus(detailTask, status) {
       detailTask.status = status;
       if (status == 1) {
@@ -301,40 +291,6 @@ export default {
         detailTask.isDoing = false;
         detailTask.isDone = true;
       }
-    },
-    postData() {
-      this.db
-        .add({
-          id: 0,
-          type: 'doing',
-          show: false,
-          title: this.mainTask.title,
-          timeLimit:
-            this.mainTask.timeLimit.date +
-            " " +
-            String(this.mainTask.timeLimit.hour) +
-            ":" +
-            String(this.mainTask.timeLimit.minute),
-        })
-        .then((response) => {
-          this.mainItems.push({
-            documentId: response.id,
-            show: false,
-            title: this.mainTask.title,
-            timeLimit:
-              this.mainTask.timeLimit.date +
-              " " +
-              String(this.mainTask.timeLimit.hour) +
-              ":" +
-              String(this.mainTask.timeLimit.minute),
-            detailTasks: [],
-        })
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-      
-      this.show = false;
     },
     updateMainId(event) {
       this.db.doc(this.mainItems[event.oldIndex].documentId).update({
