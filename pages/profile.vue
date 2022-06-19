@@ -3,7 +3,11 @@
     <v-container>
       <h1>User Profile</h1>
       <div v-if="user">Your e-mail is {{ user.email }}</div>
-      <button @click="logout">Logout</button>
+      <v-btn
+      class="my-5 pa-2 ma-2"
+      color="primary"
+      @click="logout"
+    >Logout</v-btn>
     </v-container>
   </v-main>
 

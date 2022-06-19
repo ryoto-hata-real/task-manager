@@ -2,9 +2,9 @@
   <v-sheet
     min-height="70vh"
     rounded="sm"
-    color="red lighten-4"
+    color="grey lighten-4"
     class="pb-3"
-    elevation="1"
+    elevation="2"
   >
     <v-btn
       class="mx-2 float-right pa-2 ma-2"
@@ -15,7 +15,7 @@
     >
       <v-icon> mdi-plus </v-icon>
     </v-btn>
-    <v-subheader>実行中</v-subheader>
+    <v-subheader>{{ date }}</v-subheader>
 
     <v-card
       v-show="show"
@@ -68,7 +68,7 @@
       </v-form>
     </v-card>
 
-    <v-list color="red lighten-4 mt-3">
+    <v-list class="mt-3" color="grey lighten-4">
       <draggable ghostClass="on-drag_doing" @end="updateMainId($event)" tag="v-col" animation="300" group="items">
         <v-col
           v-for="(item, i) in sortedItemsById"
@@ -97,7 +97,7 @@
                   <v-spacer></v-spacer>
                   <v-card-actions class="pa-0">
                     <v-spacer></v-spacer>
-                    <v-btn icon @click="item.show = !item.show">
+                    <v-btn icon @click="isOpenDetail(item)">
                       <v-icon>{{
                         item.show ? "mdi-chevron-up" : "mdi-chevron-down"
                       }}</v-icon>
@@ -132,7 +132,12 @@
                     cols="12"
                     class="pa-1"
                   >
-                    <v-card color="red lighten-5" v-if="detailTask">
+                    <v-card v-bind:class="{
+                      'red lighten-5': detailTask.isDone,
+                      'blue lighten-5': detailTask.isPending, 
+                      'green lighten-5': detailTask.isDoing,
+                      
+                    }" v-if="detailTask">
                       <div class="d-flex flex-no-wrap justify-space-between">
                         <div class="d-flex flex-column">
                           <v-card-subtitle
@@ -150,8 +155,8 @@
                                 { 'chosen-process': detailTask.isPending },
                                 'ma-1',
                               ]"
-                              >確認待</v-btn
-                            >
+                              ><strong>確認待</strong>
+                            </v-btn>
                             <v-btn
                               outlined
                               small
@@ -162,8 +167,8 @@
                                 { 'chosen-process': detailTask.isDoing },
                                 'ma-1',
                               ]"
-                              >実行中</v-btn
-                            >
+                              ><strong>実行中</strong>
+                              </v-btn>
                             <v-btn
                               outlined
                               small
@@ -174,7 +179,7 @@
                                 { 'chosen-process': detailTask.isDone },
                                 'ma-1',
                               ]"
-                              >完了
+                              ><strong>完了</strong>
                             </v-btn>
                             <v-btn
                               fab
@@ -198,13 +203,14 @@
                 <v-form sm="6" md="4" class="ma-4" @submit.prevent>
                     <v-row>
                       <v-text-field
-                        v-model="item.detailPool"
+                        v-model="task"
                         label="タスク追加"
+                        id="detail-task"
                         outlined
                         hide-details
                         dense
                         class="pl-3"
-                        @keydown.enter="postSubData(item.title, item)"
+                        @keydown.enter="postDetailData(item)"
                       ></v-text-field>
                       <v-btn
                         class="mx-2"
@@ -212,7 +218,7 @@
                         dark
                         small
                         color="success"
-                        @click="postSubData(item.title, item)"
+                        @click="postDetailData(item)"
                       >
                         <v-icon dark> mdi-pencil </v-icon>
                       </v-btn>
@@ -230,6 +236,10 @@
 <script>
 import draggable from "vuedraggable";
 
+const date = new Date();
+const month = date.getMonth() + 1; //月が代入される
+const day = date.getDate()
+
 export default {
   components: { draggable },
   data: () => ({
@@ -241,6 +251,7 @@ export default {
         minute: "",
       },
     },
+    date: String(month) + '月' + String(day) + '日のタスク',
     detailTask: "",
     timeHourItems: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
     timeMinuteItems: ['00', '15', '30', '45'],
@@ -249,7 +260,7 @@ export default {
       animation: 300,
     },
   }),
-  mounted() {
+  created() {
     this.$store.dispatch("tasks/getTasks");
   },
   computed: {
@@ -261,11 +272,21 @@ export default {
     },
     mainItems () {
       return this.$store.state.tasks.mainItems
+    },
+    task: {
+      get () {
+        return this.$store.state.tasks.detailTask
+      },
+      set (value) {
+        this.$store.commit('tasks/updateDetailTask', value)
+      },
     }
+
   },
   methods: {
     addTask() {
-      this.$store.dispatch('tasks/addTask', 
+      this.show = !this.show
+      this.$store.dispatch('tasks/addTaskAction', 
         {
           title: this.mainTask.title,
           date: this.mainTask.timeLimit.date,
@@ -274,23 +295,13 @@ export default {
         }
       )
       this.mainTask.title = ''
-      this.show = false;
+      this.mainTask.timeLimit.date = ''
+      this.mainTask.timeLimit.hour = ''
+      this.mainTask.timeLimit.minute = ''
+
     },
     changeStatus(detailTask, status) {
-      detailTask.status = status;
-      if (status == 1) {
-        detailTask.isPending = true;
-        detailTask.isDoing = false;
-        detailTask.isDone = false;
-      } else if (status == 2) {
-        detailTask.isPending = false;
-        detailTask.isDoing = true;
-        detailTask.isDone = false;
-      } else {
-        detailTask.isPending = false;
-        detailTask.isDoing = false;
-        detailTask.isDone = true;
-      }
+      this.$store.commit('tasks/changeStatus', {detailTask: detailTask, status: status})
     },
     updateMainId(event) {
       this.db.doc(this.mainItems[event.oldIndex].documentId).update({
@@ -300,49 +311,27 @@ export default {
         id: event.oldIndex
       })
     },
-    async postSubData(title, item) {
-      const snapshot = await this.db.doc(item.documentId)
-      if (item.detailPool != '') {
-        if (snapshot.empty) {
-          console.log('No matching documents.');
-          return;
-        }
-
-        await snapshot.collection('detailTasks').add({
-          id: 0,
-          type: 'doing',
-          detail: item.detailPool,
-          isPending: true,
-          isDoing: false,
-          isDone: false,
-        })
-        .then((response) => {     
-          item.detailTasks.push({
-            detail: item.detailPool,
-            isPending: true,
-            isDoing: false,
-            isDone: false,
-          })
-        item.detailPool = ""
-        item.show = false;
-        item.show = true;
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-      }
-
+    postDetailData(item) {
+      this.$store.dispatch('tasks/addDetailTaskAction', {
+        task: this.$store.state.tasks.detailTask,
+        item:item
+      })
+    },
+    isOpenDetail(item){
+      this.$store.commit('tasks/isOpenDetails', item)
     },
     deleteDetailData(item, deletedItem, j) {
-      if (item['detailTasks'].length == 1) {
-        item.show = false
-      }
-      this.db.doc(item.documentId).collection('detailTasks').doc(deletedItem.documentId).delete()
-      item['detailTasks'].splice(j,1)
+      this.$store.dispatch('tasks/deleteDetailData', {
+        item: item,
+        deletedItem: deletedItem,
+        j: j
+      })
     },
     deleteData(item, i) {
-      this.db.doc(item.documentId).delete()
-      this.mainItems.splice(i,1)
+      this.$store.dispatch('tasks/deleteData', {
+        documentId: item.documentId,
+        i: i,
+      })
     }
   },
 };
@@ -365,6 +354,9 @@ export default {
   background: #e990b9;
   color: #fff;
   z-index: 10;
+}
+.red {
+  background-color: #e990b9;
 }
 
 </style>
