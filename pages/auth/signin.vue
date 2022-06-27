@@ -2,8 +2,8 @@
   <v-main>
     <v-container>
       <v-card 
-        class="mx-auto my-12"
-        max-width="456"
+        class="mx-auto"
+        max-width="640"
       >
         <template slot="progress">
           <v-progress-linear
@@ -12,18 +12,17 @@
             indeterminate
           ></v-progress-linear>
         </template>
-        <v-row align="center">
           <v-card-title>
-            ログイン
+            Googleアカウントでログイン
           </v-card-title>
           <v-divider class="mx-4"></v-divider>
           <v-card-text>
-
-              <button id="googleSignIn" class="btn btn-block" @click="signInWithGoogle">ログイン
-              </button>
+            google fire authというサービスを利用して認証を行なっております。
+            また、メールアドレスに営業等のあらゆるメールをお送りすることは一切ございません。
           </v-card-text>
-        </v-row>
-        
+          <div class="google-btn"> 
+            <img src="/btn_google_signin_light_normal_web@2x.png" @click="signInWithGoogle">      
+          </div>  
       </v-card>
     </v-container>
   </v-main>
@@ -33,6 +32,7 @@
 
 export default {
   layout: 'layout',
+  middleware: "auth",
   data() {
     return {
       snackbar: false,
@@ -53,9 +53,9 @@ export default {
           localStorage.setItem('refresh_token', res.user.refreshToken.toString())
         })
         
-      }).then(async (user) => {
-        $nuxt.$router.push('/')
       })
+      $nuxt.$router.push('/')
+      
       
       console.log('成功しました')
     },
@@ -68,5 +68,22 @@ export default {
 .btn-block {
   font-size: 1.2em;
   vertical-align: middle;
+}
+
+.google-btn {
+  margin-right:auto;
+  margin-left:auto;
+  width: 40%;
+  background: transparent;
+}
+
+.google-btn img{
+  width: 100%;
+}
+
+.google-btn img:hover {
+  cursor: pointer;
+  box-shadow: 0px 10px 10px rgba(151, 151, 151, 0.445);
+  transition: 300ms;
 }
 </style>

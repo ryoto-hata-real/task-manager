@@ -15,7 +15,8 @@
           :key="link"
           :to="link"
         >
-          {{ link }}
+          <span v-if="link=='/top'">Top</span>
+          <span v-else>Profile</span>
         </v-tab>
       </v-tabs>
     </v-app-bar>
@@ -33,8 +34,8 @@ export default {
   data() {
     return {
       links: [
-        'top',
-        'profile',
+        '/top',
+        '/profile',
       ],
     }
   },

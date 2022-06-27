@@ -11,22 +11,9 @@ export const mutations = {
     state.detailTask = value
   },
 
-  addTask(state ,{title, date, hour, minute, user}) {
-    const addTask = this.$fire.firestore.collection(user.uid)
-      .add({
-        id: 0,
-        type: 'doing',
-        show: false,
-        title: title,
-        timeLimit:
-          String(date) +
-          " " +
-          String(hour) +
-          ":" +
-          String(minute),
-      })
+  async addTask(state ,{title, date, hour, minute, res}) {
     state.mainItems.push({
-      documentId: addTask.id,
+      documentId: res.id,
       show: false,
       title: title,
       timeLimit:
@@ -44,8 +31,9 @@ export const mutations = {
   deleteDetailData(state, {item, j}) {
     item.detailTasks.splice(j, 1)
   },
-  addDetailTask(state, {task, item}) {
+  addDetailTask(state, {task, item, res}) {
     item.detailTasks.push({
+      documentId: res.id,
       detail: task,
       isPending: true,
       isDoing: false,
@@ -106,17 +94,41 @@ export const actions = {
   },
   async addTaskAction({commit, rootState} ,{title, date, hour, minute}) {
     const user = rootState.user
+    const addTask = await this.$fire.firestore.collection(user.uid)
+      .add({
+        id: 0,
+        type: 'doing',
+        show: false,
+        title: title,
+        timeLimit:
+          String(date) +
+          " " +
+          String(hour) +
+          ":" +
+          String(minute),
+      })
     await commit('addTask', {
       title: title, 
       date: date,
       hour: hour, 
       minute: minute, 
-      user: user
+      res: addTask
     })
   },
   deleteData({commit, rootState}, {documentId, i}) {
     const user = rootState.user
-    this.$fire.firestore.collection(user.uid).doc(documentId).delete()
+    const document = this.$fire.firestore.collection(user.uid).doc(documentId)
+   
+
+    const deleteDocumentRecursively = async (docRef) => {
+      const collectionRef = await docRef.collection('detailTasks');
+      const collection = await collectionRef.get();
+      for (let doc of collection.docs) {
+        await collectionRef.doc(doc.id).delete()
+      }
+    };
+    deleteDocumentRecursively(this.$fire.firestore.collection(user.uid).doc(documentId))
+    document.delete()
     commit('deleteData', i)
   },
   deleteDetailData({commit, rootState}, {item, deletedItem, j}){
@@ -124,25 +136,25 @@ export const actions = {
       commit('isOpenDetails', item)
     }
     const user = rootState.user
+    
     this.$fire.firestore.collection(user.uid).doc(item.documentId).collection('detailTasks').doc(deletedItem.documentId).delete()
     commit('deleteDetailData', {item: item, j: j})
   },
-  addDetailTaskAction({commit, rootState}, {task, item}){
+  async addDetailTaskAction({commit, rootState}, {task, item}){
     const snapshot = this.$fire.firestore.collection(rootState.user.uid).doc(item.documentId)
     if (task != '') {
       if (snapshot.empty) {
         console.log('No matching documents.');
         return;
       }
-      const addDetail = snapshot.collection('detailTasks').add({
+      const addTask = await this.$fire.firestore.collection(rootState.user.uid).doc(item.documentId).collection('detailTasks').add({
         id:0,
         detail: String(task),
         isPending: true,
         isDoing: false,
         isDone: false,
-      }).then(
-        commit('addDetailTask', {task: task, item: item})
-      )
+      })
+      commit('addDetailTask', {task: task, item: item, res: addTask})
       commit('updateDetailTask', '')
     }
   }

@@ -312,9 +312,11 @@ export default {
       })
     },
     postDetailData(item) {
+      console.log(item)
       this.$store.dispatch('tasks/addDetailTaskAction', {
         task: this.$store.state.tasks.detailTask,
         item:item
+        
       })
     },
     isOpenDetail(item){
